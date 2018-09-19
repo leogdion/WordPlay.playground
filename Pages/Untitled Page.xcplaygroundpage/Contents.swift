@@ -91,18 +91,32 @@ func getLinks(byTitles titles: String, transform: ((String) -> String?)?, _ comp
   }
 }
 
+extension String {
+  func onlyAlphabet () -> String? {
+    for chr in self {
+      if (!(chr >= "a" && chr <= "z")) {
+        return nil
+      }
+    }
+    return self
+  }
+}
 let group = DispatchGroup()
 
+let url = playgroundSharedDataDirectory.appendingPathComponent("names.txt")
+print(url.path)
+FileManager.default.createFile(atPath: url.path, contents: "".data(using: .utf8), attributes: nil)
+let fileHandle = try! FileHandle(forWritingTo: url)
 var birdNames : [String]!
 var appleNames : [String]!
 group.enter()
-getLinks(byTitles: "List_of_birds_by_common_name", transform: {$0.split(separator: " ").last?.lowercased()}) { (names) in
+getLinks(byTitles: "List_of_birds_by_common_name", transform: {$0.split(separator: " ").last?.lowercased().onlyAlphabet()}) { (names) in
   birdNames = names.sorted()
   group.leave()
 }
 
 group.enter()
-getLinks(byTitles: "List_of_apple_cultivars", transform: {$0.split(separator: " ").last?.lowercased()}) { (names) in
+getLinks(byTitles: "List_of_apple_cultivars", transform: {$0.split(separator: " ").last?.lowercased().onlyAlphabet()}) { (names) in
   appleNames = names.sorted()
   group.leave()
 }
@@ -122,8 +136,6 @@ group.notify(queue: .main) {
   })
   
   let names = appleNamesFirst.flatMap{$0} + birdNamesFirst.flatMap{$0}
-  let url = playgroundSharedDataDirectory.appendingPathComponent("names.txt")
-  let fileHandle = try! FileHandle(forWritingTo: url)
   let newLineData = "\n".data(using: .utf8)!
   var lastPercent = 0
   names.sorted().enumerated().forEach({ (index, name) in
@@ -137,5 +149,6 @@ group.notify(queue: .main) {
     fileHandle.write(name.data(using: .utf8)!)
     fileHandle.write(newLineData)
   })
+  fileHandle.closeFile()
   PlaygroundPage.current.finishExecution()
 }
